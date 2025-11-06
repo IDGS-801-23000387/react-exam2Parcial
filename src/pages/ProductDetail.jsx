@@ -4,12 +4,9 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-
   const [producto, setProducto] = useState(null);
-  const [cantidad, setCantidad] = useState(1);
   const [loading, setLoading] = useState(true);
 
-  // 🔹 Obtener producto desde la API
   useEffect(() => {
     const fetchProduct = async () => {
       try {
@@ -18,10 +15,9 @@ const ProductDetail = () => {
         );
         if (!response.ok) throw new Error("Error al obtener producto");
         const data = await response.json();
-        console.log("✅ Producto cargado:", data);
         setProducto(data);
       } catch (error) {
-        console.error("❌ Error al obtener producto:", error);
+        console.error("Error al obtener producto:", error);
       } finally {
         setLoading(false);
       }
@@ -30,7 +26,6 @@ const ProductDetail = () => {
     fetchProduct();
   }, [id]);
 
-  // 🔹 Registrar compra y redirigir a /sales
   const handleComprar = async () => {
     try {
       const response = await fetch(
@@ -40,9 +35,8 @@ const ProductDetail = () => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             productoId: producto.productoId,
-            nombreProducto: producto.nombre, // 👈 campo requerido por tu backend
-            cantidad,
-            total: producto.precio * cantidad,
+            nombreProducto: producto.nombre,
+            total: producto.precio,
             fecha: new Date().toISOString(),
             estado: "Procesando",
           }),
@@ -50,34 +44,24 @@ const ProductDetail = () => {
       );
 
       if (response.ok) {
-        console.log("✅ Compra registrada correctamente");
-        navigate("/sales"); // 👈 redirige automáticamente a la página de compras
+        navigate("/sales");
       } else {
-        const errorText = await response.text();
-        console.error("❌ Error al registrar la compra:", errorText);
+        console.error("Error al registrar la compra");
       }
     } catch (error) {
-      console.error("❌ Error al enviar compra:", error);
+      console.error("Error al enviar compra:", error);
     }
   };
 
-  const incrementar = () => {
-    if (producto && cantidad < producto.stock) setCantidad(cantidad + 1);
-  };
-
-  const decrementar = () => {
-    if (cantidad > 1) setCantidad(cantidad - 1);
-  };
-
-  // 🔹 Estados de carga y error
-  if (loading)
+  if (loading) {
     return (
       <div className="flex justify-center items-center h-screen text-gray-600">
         Cargando producto...
       </div>
     );
+  }
 
-  if (!producto)
+  if (!producto) {
     return (
       <div className="flex flex-col items-center justify-center h-screen text-gray-600">
         <p>No se encontró el producto solicitado.</p>
@@ -89,10 +73,11 @@ const ProductDetail = () => {
         </Link>
       </div>
     );
+  }
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Header */}
+ 
       <header className="flex justify-between items-center px-6 sm:px-10 py-5 bg-white shadow-sm border-b border-gray-200">
         <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
           Urban<span className="text-gray-500">Store</span>
@@ -105,12 +90,13 @@ const ProductDetail = () => {
         </Link>
       </header>
 
-      {/* Contenido principal */}
+     
       <section className="px-6 sm:px-12 py-12">
         <div className="max-w-5xl mx-auto">
           <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-8 lg:p-12">
-              {/* Imagen */}
+              
+            
               <div className="flex items-center justify-center">
                 <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-12 w-full h-96">
                   <img
@@ -120,44 +106,23 @@ const ProductDetail = () => {
                       "https://via.placeholder.com/300"
                     }
                     alt={producto.nombre}
-                    className="object-contain w-full h-full drop-shadow-2xl"
+                    className="object-contain w-full h-full"
                   />
                 </div>
               </div>
 
-              {/* Información */}
+             
               <div className="flex flex-col">
-                <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                <p className="text-sm font-semibold text-gray-500 uppercase mb-3">
                   {producto.marca || "Sin marca"}
                 </p>
 
-                <h1 className="text-4xl font-bold text-gray-900 mb-4">
+                <h1 className="text-4xl font-bold text-gray-900 mb-6">
                   {producto.nombre}
                 </h1>
 
-                {/* Calificación */}
-                <div className="flex items-center gap-2 mb-6">
-                  <div className="flex items-center gap-1">
-                    {[...Array(5)].map((_, i) => (
-                      <span
-                        key={i}
-                        className={`text-xl ${
-                          i < Math.round(producto.calificacion || 0)
-                            ? "text-yellow-400"
-                            : "text-gray-200"
-                        }`}
-                      >
-                        ★
-                      </span>
-                    ))}
-                  </div>
-                  <span className="text-sm font-semibold text-gray-700">
-                    {(producto.calificacion || 0).toFixed(1)}
-                  </span>
-                </div>
-
-                {/* Precio */}
-                <div className="mb-6 pb-6 border-b border-gray-200">
+            
+                <div className="mb-8 pb-6 border-b border-gray-200">
                   <p className="text-5xl font-bold text-gray-900">
                     ${producto.precio?.toFixed(2) || "0.00"}
                     <span className="text-xl font-normal text-gray-400 ml-3">
@@ -166,56 +131,22 @@ const ProductDetail = () => {
                   </p>
                 </div>
 
-                {/* Descripción */}
-                <div className="mb-8">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                    Descripción
-                  </h3>
-                  <p className="text-gray-600 leading-relaxed">
-                    {producto.descripcion || "Sin descripción disponible."}
-                  </p>
-                </div>
-
-                {/* Cantidad */}
-                <div className="mb-8">
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">
-                    Cantidad
-                  </label>
-                  <div className="flex items-center gap-4">
-                    <button
-                      onClick={decrementar}
-                      className="w-12 h-12 rounded-xl bg-gray-100 hover:bg-gray-200 font-bold text-xl text-gray-700 transition-all active:scale-95"
-                    >
-                      −
-                    </button>
-                    <span className="text-2xl font-bold text-gray-900 w-12 text-center">
-                      {cantidad}
-                    </span>
-                    <button
-                      onClick={incrementar}
-                      className="w-12 h-12 rounded-xl bg-gray-100 hover:bg-gray-200 font-bold text-xl text-gray-700 transition-all active:scale-95"
-                    >
-                      +
-                    </button>
+              
+                {producto.descripcion && (
+                  <div className="mb-8">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                      Descripción
+                    </h3>
+                    <p className="text-gray-600 leading-relaxed">
+                      {producto.descripcion}
+                    </p>
                   </div>
-                </div>
+                )}
 
-                {/* Subtotal */}
-                <div className="mb-6 p-4 bg-gray-50 rounded-xl">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 font-medium">
-                      Subtotal:
-                    </span>
-                    <span className="text-2xl font-bold text-gray-900">
-                      ${(producto.precio * cantidad).toFixed(2)} MXN
-                    </span>
-                  </div>
-                </div>
-
-                {/* Botón Comprar */}
+             
                 <button
                   onClick={handleComprar}
-                  className="w-full py-5 rounded-2xl font-bold text-lg bg-gray-900 text-white hover:bg-gray-800 transition-all shadow-lg hover:shadow-xl active:scale-95"
+                  className="w-full py-5 rounded-2xl font-bold text-lg bg-gray-900 text-white hover:bg-gray-800 transition-all shadow-lg"
                 >
                   Comprar ahora
                 </button>
@@ -224,8 +155,6 @@ const ProductDetail = () => {
           </div>
         </div>
       </section>
-
-      {/* Footer */}
       <footer className="bg-white border-t border-gray-200 py-6 text-center text-xs text-gray-400 mt-12">
         © 2025 Urban Store · Detalle de producto
       </footer>
