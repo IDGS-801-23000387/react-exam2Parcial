@@ -1,4 +1,3 @@
-// src/pages/Results.jsx
 import React, { useEffect, useState } from "react";
 import { useLocation, Link } from "react-router-dom";
 
@@ -10,7 +9,7 @@ const Results = () => {
   const [productos, setProductos] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Llamar a la API cuando cambie el término de búsqueda
+  // Cargar productos desde la API
   useEffect(() => {
     if (!searchTerm) return;
 
@@ -21,10 +20,22 @@ const Results = () => {
             searchTerm
           )}`
         );
+
+        if (!response.ok) {
+          throw new Error(`Error HTTP: ${response.status}`);
+        }
+
         const data = await response.json();
-        setProductos(data);
+        console.log("✅ Respuesta API:", data);
+
+        // Manejar distintas estructuras posibles de respuesta
+        const productosArray = Array.isArray(data)
+          ? data
+          : data.productos || data.items || data.data || [];
+
+        setProductos(productosArray);
       } catch (error) {
-        console.error("Error al obtener los productos:", error);
+        console.error("❌ Error al obtener productos:", error);
       } finally {
         setLoading(false);
       }
@@ -56,7 +67,7 @@ const Results = () => {
         </Link>
       </header>
 
-      {/* Resultados */}
+      {/* Contenido principal */}
       <section className="flex-1 px-6 sm:px-12 py-8 pb-16">
         <div className="max-w-7xl mx-auto">
           <div className="flex justify-between items-center mb-8">
@@ -76,13 +87,17 @@ const Results = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {productos.map((producto) => (
                 <div
-                  key={producto.productoId}
+                  key={producto.productoId || producto.id}
                   className="group bg-white rounded-2xl shadow-sm hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-gray-200 flex flex-col"
                 >
                   {/* Imagen */}
                   <div className="relative bg-gradient-to-br from-gray-50 to-gray-100 h-72 flex items-center justify-center overflow-hidden">
                     <img
-                      src={producto.imagenUrl || "https://via.placeholder.com/300"}
+                      src={
+                        producto.imagen ||
+                        producto.imagenUrl ||
+                        "https://via.placeholder.com/300"
+                      }
                       alt={producto.nombre}
                       className="object-contain w-full h-full p-8 group-hover:scale-105 transition-transform duration-300"
                     />
@@ -91,7 +106,7 @@ const Results = () => {
                   {/* Detalles */}
                   <div className="p-6 flex flex-col flex-1">
                     <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
-                      {producto.marca}
+                      {producto.marca || "Sin marca"}
                     </p>
                     <h3 className="text-lg font-bold text-gray-900 mb-3 line-clamp-2 min-h-[3.5rem]">
                       {producto.nombre}
@@ -99,10 +114,10 @@ const Results = () => {
 
                     <div className="mt-auto">
                       <p className="text-2xl font-bold text-gray-900 mb-4">
-                        ${producto.precio}
+                        ${producto.precio || "0.00"}
                       </p>
                       <Link
-                        to={`/item/${producto.productoId}`}
+                        to={`/item/${producto.productoId || producto.id}`}
                         className="w-full block text-center bg-gray-900 text-white py-3.5 rounded-xl font-semibold hover:bg-gray-800 transition-all shadow-md hover:shadow-lg active:scale-95"
                       >
                         Ver detalle

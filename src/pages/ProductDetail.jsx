@@ -1,37 +1,94 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
 
 const ProductDetail = () => {
-  // Simulamos el producto (normalmente vendría de props o API)
-  const [producto] = useState({
-    productoId: 1,
-    nombre: "Red Lipstick",
-    marca: "Revlon",
-    precio: 120.99,
-    calificacion: 4.5,
-    descripcion: "Lápiz labial de larga duración con acabado mate. Fórmula enriquecida con vitamina E y aceites naturales que mantienen tus labios hidratados durante todo el día. Color vibrante y pigmentado que resalta tu belleza natural.",
-    stock: 15,
-    imagenUrl: "https://cdn.dummyjson.com/products/images/beauty/Red%20Lipstick/thumbnail.png"
-  });
+  const { id } = useParams();
+  const navigate = useNavigate();
 
+  const [producto, setProducto] = useState(null);
   const [cantidad, setCantidad] = useState(1);
-  const [agregado, setAgregado] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const handleComprar = () => {
-    setAgregado(true);
-    setTimeout(() => setAgregado(false), 2000);
+  // 🔹 Obtener producto desde la API
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        const response = await fetch(
+          `https://storeonlinebackend-production.up.railway.app/api/items/${id}`
+        );
+        if (!response.ok) throw new Error("Error al obtener producto");
+        const data = await response.json();
+        console.log("✅ Producto cargado:", data);
+        setProducto(data);
+      } catch (error) {
+        console.error("❌ Error al obtener producto:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProduct();
+  }, [id]);
+
+  // 🔹 Registrar compra y redirigir a /sales
+  const handleComprar = async () => {
+    try {
+      const response = await fetch(
+        "https://storeonlinebackend-production.up.railway.app/api/addSale",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            productoId: producto.productoId,
+            nombreProducto: producto.nombre, // 👈 campo requerido por tu backend
+            cantidad,
+            total: producto.precio * cantidad,
+            fecha: new Date().toISOString(),
+            estado: "Procesando",
+          }),
+        }
+      );
+
+      if (response.ok) {
+        console.log("✅ Compra registrada correctamente");
+        navigate("/sales"); // 👈 redirige automáticamente a la página de compras
+      } else {
+        const errorText = await response.text();
+        console.error("❌ Error al registrar la compra:", errorText);
+      }
+    } catch (error) {
+      console.error("❌ Error al enviar compra:", error);
+    }
   };
 
   const incrementar = () => {
-    if (cantidad < producto.stock) {
-      setCantidad(cantidad + 1);
-    }
+    if (producto && cantidad < producto.stock) setCantidad(cantidad + 1);
   };
 
   const decrementar = () => {
-    if (cantidad > 1) {
-      setCantidad(cantidad - 1);
-    }
+    if (cantidad > 1) setCantidad(cantidad - 1);
   };
+
+  // 🔹 Estados de carga y error
+  if (loading)
+    return (
+      <div className="flex justify-center items-center h-screen text-gray-600">
+        Cargando producto...
+      </div>
+    );
+
+  if (!producto)
+    return (
+      <div className="flex flex-col items-center justify-center h-screen text-gray-600">
+        <p>No se encontró el producto solicitado.</p>
+        <Link
+          to="/"
+          className="mt-4 px-4 py-2 bg-gray-900 text-white rounded-full hover:bg-gray-800 transition"
+        >
+          Volver al inicio
+        </Link>
+      </div>
+    );
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -40,39 +97,40 @@ const ProductDetail = () => {
         <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
           Urban<span className="text-gray-500">Store</span>
         </h1>
-        <a
-          href="/"
+        <Link
+          to="/items"
           className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
         >
           Volver a resultados
-        </a>
+        </Link>
       </header>
 
-      {/* Contenido Principal */}
+      {/* Contenido principal */}
       <section className="px-6 sm:px-12 py-12">
         <div className="max-w-5xl mx-auto">
           <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-8 lg:p-12">
-              
-              {/* Imagen del Producto */}
+              {/* Imagen */}
               <div className="flex items-center justify-center">
                 <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-12 w-full h-96">
                   <img
-                    src={producto.imagenUrl}
+                    src={
+                      producto.imagen ||
+                      producto.imagenUrl ||
+                      "https://via.placeholder.com/300"
+                    }
                     alt={producto.nombre}
                     className="object-contain w-full h-full drop-shadow-2xl"
                   />
                 </div>
               </div>
 
-              {/* Información del Producto */}
+              {/* Información */}
               <div className="flex flex-col">
-                {/* Marca */}
                 <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                  {producto.marca}
+                  {producto.marca || "Sin marca"}
                 </p>
 
-                {/* Nombre */}
                 <h1 className="text-4xl font-bold text-gray-900 mb-4">
                   {producto.nombre}
                 </h1>
@@ -84,7 +142,7 @@ const ProductDetail = () => {
                       <span
                         key={i}
                         className={`text-xl ${
-                          i < Math.round(producto.calificacion)
+                          i < Math.round(producto.calificacion || 0)
                             ? "text-yellow-400"
                             : "text-gray-200"
                         }`}
@@ -94,14 +152,14 @@ const ProductDetail = () => {
                     ))}
                   </div>
                   <span className="text-sm font-semibold text-gray-700">
-                    {producto.calificacion.toFixed(1)}
+                    {(producto.calificacion || 0).toFixed(1)}
                   </span>
                 </div>
 
                 {/* Precio */}
                 <div className="mb-6 pb-6 border-b border-gray-200">
                   <p className="text-5xl font-bold text-gray-900">
-                    ${producto.precio.toFixed(2)}
+                    ${producto.precio?.toFixed(2) || "0.00"}
                     <span className="text-xl font-normal text-gray-400 ml-3">
                       MXN
                     </span>
@@ -114,17 +172,7 @@ const ProductDetail = () => {
                     Descripción
                   </h3>
                   <p className="text-gray-600 leading-relaxed">
-                    {producto.descripcion}
-                  </p>
-                </div>
-
-                {/* Stock */}
-                <div className="mb-6">
-                  <p className="text-sm font-medium text-gray-700">
-                    Stock disponible:{" "}
-                    <span className={producto.stock > 5 ? "text-green-600" : "text-orange-600"}>
-                      {producto.stock} unidades
-                    </span>
+                    {producto.descripcion || "Sin descripción disponible."}
                   </p>
                 </div>
 
@@ -155,23 +203,21 @@ const ProductDetail = () => {
                 {/* Subtotal */}
                 <div className="mb-6 p-4 bg-gray-50 rounded-xl">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600 font-medium">Subtotal:</span>
+                    <span className="text-gray-600 font-medium">
+                      Subtotal:
+                    </span>
                     <span className="text-2xl font-bold text-gray-900">
                       ${(producto.precio * cantidad).toFixed(2)} MXN
                     </span>
                   </div>
                 </div>
 
-                {/* Botón de Comprar */}
+                {/* Botón Comprar */}
                 <button
                   onClick={handleComprar}
-                  className={`w-full py-5 rounded-2xl font-bold text-lg transition-all shadow-lg hover:shadow-xl active:scale-95 ${
-                    agregado
-                      ? 'bg-green-600 text-white'
-                      : 'bg-gray-900 text-white hover:bg-gray-800'
-                  }`}
+                  className="w-full py-5 rounded-2xl font-bold text-lg bg-gray-900 text-white hover:bg-gray-800 transition-all shadow-lg hover:shadow-xl active:scale-95"
                 >
-                  {agregado ? '¡Agregado al carrito! ✓' : 'Comprar ahora'}
+                  Comprar ahora
                 </button>
               </div>
             </div>
