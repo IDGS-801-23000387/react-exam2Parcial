@@ -56,7 +56,7 @@ const Home = () => {
 
       {/* Footer */}
       <footer className="bg-white border-t border-gray-200 py-5 text-center text-xs text-gray-400">
-        © 2025 Urban Market · Todos los derechos reservados
+        © 2025 Urban Store · Todos los derechos reservados
       </footer>
     </main>
   );
